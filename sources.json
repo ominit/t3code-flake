@@ -1,16 +1,7 @@
 {
   "x86_64-linux": {
-    "version": "0.9.4.1",
-    "tar_url": "https://github.com/imputnet/helium-linux/releases/download/0.9.4.1/helium-0.9.4.1-x86_64_linux.tar.xz",
-    "tar_sha256": "sha256-qXuDUtank46O87jASxczmVMk0iD4JaZi2j9LSBe9VCM=",
-    "appimage_url": "https://github.com/imputnet/helium-linux/releases/download/0.9.4.1/helium-0.9.4.1-x86_64.AppImage",
-    "appimage_sha256": "sha256-N5gdWuxOrIudJx/4nYo4/SKSxakpTFvL4zzByv6Cnug="
-  },
-  "aarch64-linux": {
-    "version": "0.9.4.1",
-    "tar_url": "https://github.com/imputnet/helium-linux/releases/download/0.9.4.1/helium-0.9.4.1-arm64_linux.tar.xz",
-    "tar_sha256": "sha256-FZMiIwbXmbMHAmC9YPJC5uRHy1W9ZIB0efwGFrCaYKc=",
-    "appimage_url": "https://github.com/imputnet/helium-linux/releases/download/0.9.4.1/helium-0.9.4.1-arm64.AppImage",
-    "appimage_sha256": "sha256-BvU0bHtJMd6e09HY+9Vhycr3J0O2hunRJCHXpzKF8lk="
+    "version": "0.0.4",
+    "appimage_url": "https://github.com/pingdotgg/t3code/releases/download/v0.0.4/T3-Code-0.0.4-x86_64.AppImage",
+    "appimage_sha256": "sha256-HlkQ/uPLXHh2Duamrmhp31yQqnETawQ4Ru7kg2MmpVs="
   }
 }

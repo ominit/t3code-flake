@@ -1,20 +1,20 @@
-Flake for [imput's Helium browser](https://helium.computer/)
+Flake for [T3 Code](https://t3.codes/)
 
 The source is kept up to date via a Github Action.
 
-There are two outputs: `helium` and `helium-appimage`.
+There are two outputs: `t3code` and `t3code-appimage`.
 They are both different ways of packaging the latest release.
 
-You should most likely pick the `helium` version.
+You should most likely pick the `t3code` version.
 The AppImage version exists primarily for compatibility reasons.
 
 ```nix
-helium-browser = {
-  url = "github:ominit/helium-browser-flake";
+t3code = {
+  url = "github:ominit/t3code-flake";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
 
 ```nix
-inputs.helium-browser.packages."${pkgs.system}".helium
+inputs.t3code.packages."${pkgs.system}".t3code
 ```

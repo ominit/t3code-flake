@@ -1,11 +1,11 @@
-name: Update Helium Browser
+name: Update T3 Code
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
 jobs:
-  update-helium-browser:
-    name: Update Helium Browser
+  update-t3code:
+    name: Update T3 Code
     runs-on: ubuntu-latest
     permissions:
       contents: write

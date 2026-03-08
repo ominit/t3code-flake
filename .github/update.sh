@@ -9,10 +9,10 @@ if echo "$@" | grep -qoE '(--only-check)'; then
   only_check=true
 fi
 
-remote_latest=$(curl 'https://api.github.com/repos/imputnet/helium-linux/releases/latest' -s)
+remote_latest=$(curl 'https://api.github.com/repos/pingdotgg/t3code/releases/latest' -s)
 
-get_tag() {
-  echo "$remote_latest" | jq -r '.tag_name'
+get_version() {
+  echo "$remote_latest" | jq -r '.tag_name | ltrimstr("v")'
 }
 
 commit_targets=""
@@ -27,9 +27,9 @@ update_version() {
   meta=$(jq ".[\"$arch-$os\"]" <sources.json)
 
   local=$(echo "$meta" | jq -r '.version')
-  remote=$(get_tag)
+  remote=$(get_version)
 
-  echo "Checking helium @ $arch... local=$local remote=$remote"
+  echo "Checking t3code @ $arch... local=$local remote=$remote"
 
   if [ "$local" = "$remote" ]; then
     echo "Local version is up to date"
@@ -43,20 +43,21 @@ update_version() {
     exit 0
   fi
 
-  if [ "$arch" = "aarch64" ]; then
-    appimage_download_url="https://github.com/imputnet/helium-linux/releases/download/$remote/helium-$remote-arm64.AppImage"
-    tar_download_url="https://github.com/imputnet/helium-linux/releases/download/$remote/helium-$remote-arm64_linux.tar.xz"
-  else
-    appimage_download_url="https://github.com/imputnet/helium-linux/releases/download/$remote/helium-$remote-x86_64.AppImage"
-    tar_download_url="https://github.com/imputnet/helium-linux/releases/download/$remote/helium-$remote-x86_64_linux.tar.xz"
+  if [ "$arch" != "x86_64" ] || [ "$os" != "linux" ]; then
+    echo "Unsupported target: $arch-$os" >&2
+    exit 1
   fi
 
-  prefetch_output=$(nix store prefetch-file --hash-type sha256 --json "$tar_download_url")
-  tar_sha256=$(echo "$prefetch_output" | jq -r '.hash')
+  appimage_download_url=$(echo "$remote_latest" | jq -r --arg version "$remote" '.assets[] | select(.name == ("T3-Code-" + $version + "-x86_64.AppImage")) | .browser_download_url')
+  if [ -z "$appimage_download_url" ] || [ "$appimage_download_url" = "null" ]; then
+    echo "Unable to find Linux AppImage asset for t3code $remote" >&2
+    exit 1
+  fi
+
   prefetch_output=$(nix store prefetch-file --hash-type sha256 --json "$appimage_download_url")
   appimage_sha256=$(echo "$prefetch_output" | jq -r '.hash')
 
-  jq ".[\"$arch-$os\"] = {\"version\":\"$remote\",\"tar_url\":\"$tar_download_url\",\"tar_sha256\":\"$tar_sha256\",\"appimage_url\":\"$appimage_download_url\",\"appimage_sha256\":\"$appimage_sha256\"}" <sources.json >sources.json.tmp
+  jq ".[\"$arch-$os\"] = {\"version\":\"$remote\",\"appimage_url\":\"$appimage_download_url\",\"appimage_sha256\":\"$appimage_sha256\"}" <sources.json >sources.json.tmp
   mv sources.json.tmp sources.json
 
   if ! $ci; then
@@ -75,8 +76,6 @@ main() {
   set -e
 
   update_version "x86_64" "linux"
-  update_version "aarch64" "linux"
-  # update_version "aarch64" "darwin"
 
   if $only_check && $ci; then
     echo "should_update=false" >>"$GITHUB_OUTPUT"
@@ -88,7 +87,7 @@ main() {
     init_message="update:"
     message="$init_message"
 
-    message="$message helium @ $commit_targets to $commit_version"
+    message="$message t3code @ $commit_targets to $commit_version"
 
     echo "commit_message=$message" >>"$GITHUB_OUTPUT"
   fi
