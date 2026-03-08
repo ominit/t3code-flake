@@ -1,43 +1,39 @@
-name: Update T3 Code
+name: Update flake.lock
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 6 */3 * *"
 jobs:
-  update-t3code:
-    name: Update T3 Code
+  update-flake-lock:
+    name: Update flake.lock
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - name: Check if update is needed
-        id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          bash .github/update.sh --ci --only-check
       - name: Install Nix
-        if: steps.check.outputs.should_update == 'true'
         uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixpkgs-unstable
-      - name: Update versions
-        id: update
-        if: steps.check.outputs.should_update == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Update flake.lock
         run: |
-          bash .github/update.sh --ci
+          nix flake update
+      - name: Check if update is needed
+        id: check
+        run: |
+          if git diff --quiet -- flake.lock; then
+            echo "should_update=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "should_update=true" >>"$GITHUB_OUTPUT"
+          fi
       - name: Validate builds
         if: steps.check.outputs.should_update == 'true'
         run: |
           nix build .#t3code .#t3code-appimage .#t3code-with-codex .#t3code-appimage-with-codex
       - name: Commit changes
-        id: commit
         if: steps.check.outputs.should_update == 'true'
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
-          commit_message: "${{ steps.update.outputs.commit_message }}"
-          file_pattern: "sources.json"
+          commit_message: "update: flake.lock"
+          file_pattern: "flake.lock"
