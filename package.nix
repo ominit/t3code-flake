@@ -1,5 +1,6 @@
 {...}: {
   perSystem = {
+    inputs',
     pkgs,
     system,
     ...
@@ -19,6 +20,21 @@
       pname = "${pname}-contents";
       inherit src;
     };
+
+    codex = inputs'.llm-agents.packages.codex;
+
+    withCodex = base:
+      pkgs.symlinkJoin {
+        name = "${base.name or "${pname}-${version}"}-with-codex";
+        paths = [base];
+        nativeBuildInputs = [pkgs.makeWrapper];
+        postBuild = ''
+          if [ -x "$out/bin/${pname}" ]; then
+            wrapProgram "$out/bin/${pname}" \
+              --prefix PATH : "${pkgs.lib.makeBinPath [codex]}"
+          fi
+        '';
+      };
 
     t3code-appimage = pkgs.appimageTools.wrapType2 {
       inherit pname version src;
@@ -67,9 +83,12 @@
         runHook postInstall
       '';
     };
+
+    t3code-with-codex = withCodex t3code;
+    t3code-appimage-with-codex = withCodex t3code-appimage;
   in {
     packages = {
-      inherit t3code t3code-appimage;
+      inherit t3code t3code-appimage t3code-with-codex t3code-appimage-with-codex;
 
       default = t3code;
     };
