@@ -33,7 +33,7 @@ jobs:
       - name: Validate builds
         if: steps.check.outputs.should_update == 'true'
         run: |
-          nix build .#t3code .#t3code-appimage .#t3code-with-codex .#t3code-appimage-with-codex
+          nix build --accept-flake-config .#t3code .#t3code-appimage .#t3code-with-codex .#t3code-appimage-with-codex
       - name: Commit changes
         id: commit
         if: steps.check.outputs.should_update == 'true'
