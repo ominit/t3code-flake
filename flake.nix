@@ -4,6 +4,12 @@
   outputs = inputs:
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
       systems = ["x86_64-linux"];
+
+      flake.nixosModules = rec {
+        t3code = import ./nixos-module.nix {self = inputs.self;};
+        default = t3code;
+      };
+
       imports = [
         ./ci.nix
         ./package.nix

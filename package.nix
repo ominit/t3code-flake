@@ -29,10 +29,12 @@
         paths = [base];
         nativeBuildInputs = [pkgs.makeWrapper];
         postBuild = ''
-          if [ -x "$out/bin/${pname}" ]; then
-            wrapProgram "$out/bin/${pname}" \
-              --prefix PATH : "${pkgs.lib.makeBinPath [codex]}"
-          fi
+          for program in ${pname} t3; do
+            if [ -x "$out/bin/$program" ]; then
+              wrapProgram "$out/bin/$program" \
+                --prefix PATH : "${pkgs.lib.makeBinPath [codex]}"
+            fi
+          done
         '';
       };
 
@@ -89,6 +91,11 @@
           exit 1
         fi
         makeWrapper "$app_bin" "$out/bin/${pname}"
+
+        server_entry="${appimageContents}/resources/app.asar/apps/server/dist/bin.mjs"
+        makeWrapper "${t3code-appimage}/bin/t3code" "$out/bin/t3" \
+          --set ELECTRON_RUN_AS_NODE 1 \
+          --add-flags "$server_entry"
 
         mkdir -p "$out/share/applications"
         if [ -n "$desktop_file" ]; then
