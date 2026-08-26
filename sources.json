@@ -1,7 +1,7 @@
 {
   "x86_64-linux": {
-    "version": "0.0.33",
-    "appimage_url": "https://github.com/pingdotgg/t3code/releases/download/v0.0.33/T3-Code-0.0.33-x86_64.AppImage",
-    "appimage_sha256": "sha256-QVyGSPQ8PSLVcvJ/LFD9yMMQ6n/N6VN7kD4eLxyHdaE="
+    "version": "0.0.34",
+    "appimage_url": "https://github.com/pingdotgg/t3code/releases/download/v0.0.34/T3-Code-0.0.34-x86_64.AppImage",
+    "appimage_sha256": "sha256-YHfiB8wefmWFj3MxNTSr4do1cif0AiWFThq6w03tugQ="
   }
 }
