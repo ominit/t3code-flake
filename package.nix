@@ -1,6 +1,5 @@
 {...}: {
   perSystem = {
-    inputs',
     pkgs,
     system,
     ...
@@ -21,7 +20,7 @@
       inherit src;
     };
 
-    codex = inputs'.llm-agents.packages.codex;
+    codex = pkgs.codex;
 
     withCodex = base:
       pkgs.symlinkJoin {
