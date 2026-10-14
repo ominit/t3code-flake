@@ -20,23 +20,6 @@
       inherit src;
     };
 
-    codex = pkgs.codex;
-
-    withCodex = base:
-      pkgs.symlinkJoin {
-        name = "${base.name or "${pname}-${version}"}-with-codex";
-        paths = [base];
-        nativeBuildInputs = [pkgs.makeWrapper];
-        postBuild = ''
-          for program in ${pname} t3; do
-            if [ -x "$out/bin/$program" ]; then
-              wrapProgram "$out/bin/$program" \
-                --prefix PATH : "${pkgs.lib.makeBinPath [codex]}"
-            fi
-          done
-        '';
-      };
-
     t3code-appimage = pkgs.appimageTools.wrapType2 {
       inherit pname version src;
     };
@@ -44,96 +27,89 @@
     t3code = pkgs.stdenv.mkDerivation {
       inherit pname version;
       dontUnpack = true;
+      dontStrip = true;
 
       nativeBuildInputs = with pkgs; [
+        autoPatchelfHook
         makeWrapper
+      ];
+
+      buildInputs = with pkgs; [
+        alsa-lib
+        at-spi2-atk
+        at-spi2-core
+        atk
+        cairo
+        cups
+        dbus
+        expat
+        gdk-pixbuf
+        glib
+        gtk3
+        libgbm
+        libsecret
+        libx11
+        libxcb
+        libxcomposite
+        libxdamage
+        libxext
+        libxfixes
+        libxkbcommon
+        libxrandr
+        nspr
+        nss
+        pango
+        stdenv.cc.cc.lib
+        systemd
+      ];
+
+      runtimeDependencies = with pkgs; [
+        (lib.getLib systemd)
+        libGL
+        libnotify
       ];
 
       installPhase = ''
         runHook preInstall
 
         appdir="$out/lib/${pname}"
-        mkdir -p "$appdir"
-        cp -r ${appimageContents}/* "$appdir/"
+        mkdir -p "$appdir" "$out/share"
+        cp -r ${appimageContents}/. "$appdir/"
         chmod -R u+w "$appdir"
 
-        desktop_file=$(find "$appdir" -maxdepth 3 -type f -name '*.desktop' | head -n1)
-        exec_name=""
-        icon_name=""
-        if [ -n "$desktop_file" ]; then
-          exec_name=$(sed -n 's/^Exec=//p' "$desktop_file" | head -n1 | cut -d' ' -f1)
-          icon_name=$(sed -n 's/^Icon=//p' "$desktop_file" | head -n1)
-        fi
+        rm -rf \
+          "$appdir/.DirIcon" \
+          "$appdir/AppRun" \
+          "$appdir/t3code.png" \
+          "$appdir/usr/lib" \
+          "$appdir"/resources/app.asar.unpacked/node_modules/*/*-linux-x64-musl \
+          "$appdir"/resources/app.asar.unpacked/node_modules/node-pty/prebuilds/linux-arm64
+        mv "$appdir/usr/share/icons" "$out/share/icons"
+        install -Dm444 "$appdir/t3code.desktop" "$out/share/applications/t3code.desktop"
+        rm -r "$appdir/usr" "$appdir/t3code.desktop"
+        substituteInPlace "$out/share/applications/t3code.desktop" \
+          --replace-fail "Exec=AppRun --no-sandbox %U" "Exec=t3code %U"
 
-        mkdir -p "$out/bin"
-        app_bin=""
-        for candidate in \
-          "$appdir/t3code" \
-          "$appdir/t3-code-desktop"
-        do
-          if [ -n "$candidate" ] && [ -x "$candidate" ] && [ ! -d "$candidate" ]; then
-            app_bin="$candidate"
-            break
-          fi
-        done
-        if [ -z "$app_bin" ] && [ -n "$exec_name" ] && [ -x "$appdir/$exec_name" ] && [ ! -d "$appdir/$exec_name" ]; then
-          app_bin="$appdir/$exec_name"
-        fi
-        if [ -z "$app_bin" ] && [ -n "$exec_name" ]; then
-          app_bin=$(find "$appdir" -maxdepth 3 -type f -name "$exec_name" -perm -0100 | head -n1)
-        fi
-        if [ -z "$app_bin" ]; then
-          app_bin=$(find "$appdir" -maxdepth 3 -type f \( -name 't3code' -o -name 't3-code-desktop' -o -name 'AppRun' \) -perm -0100 | head -n1)
-        fi
-        if [ -z "$app_bin" ]; then
-          echo "Unable to locate a T3 Code executable in extracted AppImage contents" >&2
-          exit 1
-        fi
-        makeWrapper "$app_bin" "$out/bin/${pname}"
-
-        server_entry="${appimageContents}/resources/app.asar/apps/server/dist/bin.mjs"
-        makeWrapper "${t3code-appimage}/bin/t3code" "$out/bin/t3" \
+        makeWrapper "$appdir/t3code" "$out/bin/t3code" \
+          --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
+        makeWrapper "$appdir/t3code" "$out/bin/t3" \
           --set ELECTRON_RUN_AS_NODE 1 \
-          --add-flags "$server_entry"
-
-        mkdir -p "$out/share/applications"
-        if [ -n "$desktop_file" ]; then
-          sed \
-            -e 's|^Exec=.*|Exec=t3code %U|' \
-            -e 's|^Icon=.*|Icon=t3code|' \
-            "$desktop_file" > "$out/share/applications/${pname}.desktop"
-        else
-          printf '%s\n' \
-            '[Desktop Entry]' \
-            'Name=T3 Code' \
-            'Exec=t3code %U' \
-            'Terminal=false' \
-            'Type=Application' \
-            'Icon=t3code' \
-            'Categories=Development;' \
-            > "$out/share/applications/${pname}.desktop"
-        fi
-
-        icon_file=""
-        if [ -n "$icon_name" ]; then
-          icon_file=$(find "$appdir" -type f \( -name "$icon_name.png" -o -name "$icon_name.svg" -o -name "$icon_name.xpm" -o -name "$icon_name.ico" \) | sort | tail -n1)
-        fi
-        if [ -z "$icon_file" ]; then
-          icon_file=$(find "$appdir" -type f \( -name 't3code.png' -o -name 't3code.svg' -o -name 't3-code-desktop.png' \) | sort | tail -n1)
-        fi
-        if [ -n "$icon_file" ]; then
-          install -Dm444 "$icon_file" "$out/share/pixmaps/t3code.png"
-        fi
+          --add-flags "$appdir/resources/app.asar/apps/server/dist/bin.mjs"
 
         runHook postInstall
       '';
-    };
 
-    t3code-with-codex = withCodex t3code;
-    t3code-appimage-with-codex = withCodex t3code-appimage;
+      meta = {
+        description = "T3 Code desktop app and headless server";
+        homepage = "https://t3.codes/";
+        mainProgram = "t3code";
+        platforms = ["x86_64-linux"];
+        sourceProvenance = [pkgs.lib.sourceTypes.binaryNativeCode];
+      };
+    };
   in {
     packages = {
-      inherit t3code t3code-appimage t3code-with-codex t3code-appimage-with-codex;
+      inherit t3code t3code-appimage;
 
       default = t3code;
     };

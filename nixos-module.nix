@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  utils,
   ...
 }: let
   cfg = config.services.t3code;
@@ -13,7 +14,7 @@ in {
     package = lib.mkOption {
       type = lib.types.package;
       default = defaultPackage;
-      defaultText = lib.literalExpression "inputs.t3code.packages.\${pkgs.system}.t3code";
+      defaultText = lib.literalExpression "inputs.t3code.packages.\${pkgs.stdenv.hostPlatform.system}.t3code";
       description = "T3 Code package containing the t3 headless launcher.";
     };
 
@@ -57,13 +58,6 @@ in {
       type = lib.types.bool;
       default = false;
       description = "Whether to open the configured port in the firewall.";
-    };
-
-    extraPackages = lib.mkOption {
-      type = lib.types.listOf lib.types.package;
-      default = [];
-      example = lib.literalExpression "[ pkgs.claude-code pkgs.opencode ]";
-      description = "Additional provider CLIs and tools added to the service PATH.";
     };
 
     environment = lib.mkOption {
@@ -115,30 +109,21 @@ in {
         }
         // cfg.environment;
 
-      path =
-        [
-          pkgs.bashInteractive
-          pkgs.coreutils
-          pkgs.git
-          pkgs.openssh
-        ]
-        ++ cfg.extraPackages;
-
       serviceConfig =
         {
           User = cfg.user;
           Group = cfg.group;
           WorkingDirectory = cfg.dataDir;
-          ExecStart = lib.concatStringsSep " " (
+          ExecStart = utils.escapeSystemdExecArgs (
             [
-              "${cfg.package}/bin/t3"
+              (lib.getExe' cfg.package "t3")
               "serve"
               "--host"
-              (lib.escapeShellArg cfg.host)
+              cfg.host
               "--port"
               (toString cfg.port)
             ]
-            ++ map lib.escapeShellArg cfg.extraArgs
+            ++ cfg.extraArgs
           );
           EnvironmentFile = lib.optional (cfg.environmentFile != null) cfg.environmentFile;
           KillMode = "mixed";
