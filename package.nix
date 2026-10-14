@@ -14,7 +14,7 @@
       hash = info.appimage_sha256;
     };
 
-    appimageContents = pkgs.appimageTools.extractType2 {
+    appimageContents = pkgs.appimageTools.extract {
       inherit version;
       pname = "${pname}-contents";
       inherit src;
