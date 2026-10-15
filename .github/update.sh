@@ -1,96 +1,63 @@
-#!/bin/sh
-ci=false
-if echo "$@" | grep -qoE '(--ci)'; then
-  ci=true
-fi
+#!/usr/bin/env bash
+set -euo pipefail
 
-only_check=false
-if echo "$@" | grep -qoE '(--only-check)'; then
-  only_check=true
-fi
+repo=pingdotgg/t3code
+sources=sources.json
 
-remote_latest=$(curl 'https://api.github.com/repos/pingdotgg/t3code/releases/latest' -s)
+declare -A assets=(
+  [x86_64-linux]=x86_64.AppImage
+)
 
-get_version() {
-  echo "$remote_latest" | jq -r '.tag_name | ltrimstr("v")'
-}
+changes=()
 
-commit_targets=""
-commit_version=""
+update_channel() {
+  channel=$1
+  release=$2
 
-update_version() {
-  # "x86_64" or "aarch64"
-  arch=$1
-  # "linux" or "darwin"
-  os=$2
-
-  meta=$(jq ".[\"$arch-$os\"]" <sources.json)
-
-  local=$(echo "$meta" | jq -r '.version')
-  remote=$(get_version)
-
-  echo "Checking t3code @ $arch... local=$local remote=$remote"
-
-  if [ "$local" = "$remote" ]; then
-    echo "Local version is up to date"
-    return
-  fi
-
-  echo "Local version mismatch with remote so we* assume it's outdated"
-
-  if $only_check; then
-    echo "should_update=true" >>"$GITHUB_OUTPUT"
-    exit 0
-  fi
-
-  if [ "$arch" != "x86_64" ] || [ "$os" != "linux" ]; then
-    echo "Unsupported target: $arch-$os" >&2
+  if ! version=$(jq -er '.tag_name | ltrimstr("v")' <<<"$release"); then
+    echo "No $channel release found" >&2
     exit 1
   fi
+  echo "$channel: $version"
 
-  appimage_download_url=$(echo "$remote_latest" | jq -r --arg version "$remote" '.assets[] | select(.name == ("T3-Code-" + $version + "-x86_64.AppImage")) | .browser_download_url')
-  if [ -z "$appimage_download_url" ] || [ "$appimage_download_url" = "null" ]; then
-    echo "Unable to find Linux AppImage asset for t3code $remote" >&2
-    exit 1
-  fi
+  for system in "${!assets[@]}"; do
+    name="T3-Code-$version-${assets[$system]}"
+    filter='.assets[] | select(.name == $name and .digest != null) | {version: $version, url: .browser_download_url, hash: .digest}'
+    if ! source=$(jq -ec --arg name "$name" --arg version "$version" "$filter" <<<"$release"); then
+      if jq -e 'now - (.published_at | fromdateiso8601) < 3600' <<<"$release" >/dev/null; then
+        echo "$name is not uploaded yet, skipping $channel"
+        return
+      fi
+      echo "No $name asset with a digest in the $channel release" >&2
+      exit 1
+    fi
 
-  prefetch_output=$(nix store prefetch-file --hash-type sha256 --json "$appimage_download_url")
-  appimage_sha256=$(echo "$prefetch_output" | jq -r '.hash')
+    if [ "$(jq -c --arg c "$channel" --arg s "$system" '.[$c][$s]' "$sources")" = "$source" ]; then
+      continue
+    fi
 
-  jq ".[\"$arch-$os\"] = {\"version\":\"$remote\",\"appimage_url\":\"$appimage_download_url\",\"appimage_sha256\":\"$appimage_sha256\"}" <sources.json >sources.json.tmp
-  mv sources.json.tmp sources.json
-
-  if ! $ci; then
-    return
-  fi
-
-  if [ "$commit_targets" = "" ]; then
-    commit_targets="$arch"
-    commit_version="$remote"
-  else
-    commit_targets="$commit_targets && $arch"
-  fi
+    jq --arg c "$channel" --arg s "$system" --argjson source "$source" '.[$c][$s] = $source' "$sources" >"$sources.tmp"
+    mv "$sources.tmp" "$sources"
+    changes+=("$channel to $version")
+  done
 }
 
-main() {
-  set -e
+cd "$(dirname "$0")/.."
 
-  update_version "x86_64" "linux"
+stable=$(gh api "repos/$repo/releases/latest")
+nightly=$(gh api "repos/$repo/releases?per_page=30" --jq 'first(.[] | select(.prerelease and (.tag_name | contains("-nightly."))))')
 
-  if $only_check && $ci; then
-    echo "should_update=false" >>"$GITHUB_OUTPUT"
-  fi
+update_channel stable "$stable"
+update_channel nightly "$nightly"
 
-  # Check if there are changes
-  if ! git diff --exit-code >/dev/null; then
-    # Prepare commit message
-    init_message="update:"
-    message="$init_message"
+if [ ${#changes[@]} -eq 0 ]; then
+  echo "Up to date"
+  exit 0
+fi
 
-    message="$message t3code @ $commit_targets to $commit_version"
+message="update: t3code $(printf '%s\n' "${changes[@]}" | awk '!seen[$0]++' | paste -sd, - | sed 's/,/, /g')"
+echo "$message"
 
-    echo "commit_message=$message" >>"$GITHUB_OUTPUT"
-  fi
-}
-
-main
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  echo "commit_message=$message" >>"$GITHUB_OUTPUT"
+fi

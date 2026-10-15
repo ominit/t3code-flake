@@ -12,10 +12,13 @@ Only x86_64-linux is supported.
 
 If `NIXOS_OZONE_WL` is set and you're in a Wayland session, the `t3code` desktop wrapper starts the app with native Wayland flags.
 
+`t3code-nightly` and `t3code-nightly-appimage` are the same packages built from the latest upstream nightly release. They provide the same commands, so install either stable or nightly, not both. Nightly uses the same `~/.t3` state directory as stable and may migrate it to a format stable can't read yet.
+
 To try it without installing:
 
 ```sh
 nix run github:ominit/t3code-flake
+nix run github:ominit/t3code-flake#t3code-nightly
 nix shell github:ominit/t3code-flake --command t3 serve
 ```
 
@@ -53,6 +56,8 @@ The module adds nothing to the service's `PATH`. The server needs `git`, `openss
   ];
 }
 ```
+
+To run the nightly server, set `services.t3code.package = inputs.t3code.packages.${pkgs.stdenv.hostPlatform.system}.t3code-nightly;`.
 
 Once the service is running, find the pairing URL in its log:
 
@@ -118,7 +123,7 @@ The service sets `HOME` to `dataDir`. If the agents should use your normal git a
 
 ## Updates
 
-A scheduled GitHub Action checks for new T3 Code releases every hour. When it finds one, it opens a pull request that updates `sources.json` and merges automatically. Run `nix flake update t3code` in your own flake to pick up the new version.
+A scheduled GitHub Action checks for new stable and nightly T3 Code releases every hour. When it finds one, it opens a pull request that updates `sources.json` and merges automatically. To update locally, run `.github/update.sh`, which needs `gh` and `jq`. Run `nix flake update t3code` in your own flake to pick up the new version.
 
 ## License
 
