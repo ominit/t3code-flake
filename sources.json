@@ -1,9 +1,9 @@
 {
   "stable": {
     "x86_64-linux": {
-      "version": "0.0.45",
-      "url": "https://github.com/pingdotgg/t3code/releases/download/v0.0.45/T3-Code-0.0.45-x86_64.AppImage",
-      "hash": "sha256:ab7b0a86d1ea657ccc162b60b772c61f70bc7c8b9e259b46939d53bb38faa02a"
+      "version": "0.1.0",
+      "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.0/T3-Code-0.1.0-x86_64.AppImage",
+      "hash": "sha256:e38d9c5fb513b1ece0a708b906d3383b5b47ed199575b39a31e41ab8834eb744"
     }
   },
   "nightly": {
