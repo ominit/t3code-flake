@@ -1,5 +1,10 @@
 name: Dependabot auto-merge
-on: pull_request
+on:
+  pull_request:
+    # The automated t3code update PRs only touch sources.json. Their runs never
+    # get a job created and fail once the head branch is gone, so skip them.
+    paths-ignore:
+      - sources.json
 permissions:
   contents: write
   pull-requests: write
