@@ -15,7 +15,7 @@
     headlessCli = package:
       pkgs.runCommand "${package.name}-headless-cli" {nativeBuildInputs = [package];} ''
         t3 --version | grep -F "t3 v"
-        t3 serve --help | grep -F "Run the T3 Code server without opening a browser"
+        t3 serve --help | grep -F "Run T3 Code in this terminal without opening a browser"
         touch "$out"
       '';
 
