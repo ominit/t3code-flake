@@ -85,6 +85,7 @@
             "$appdir/t3code.png" \
             "$appdir/usr/lib" \
             "$appdir"/resources/app.asar.unpacked/node_modules/*/*-linux-x64-musl \
+            "$appdir"/resources/app.asar.unpacked/node_modules/@koromix/koffi-linux-x64/musl_x64 \
             "$appdir"/resources/app.asar.unpacked/node_modules/node-pty/prebuilds/linux-arm64
           mv "$appdir/usr/share/icons" "$out/share/icons"
           install -Dm444 "$appdir/t3code.desktop" "$out/share/applications/t3code.desktop"
