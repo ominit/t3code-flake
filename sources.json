@@ -8,9 +8,9 @@
   },
   "nightly": {
     "x86_64-linux": {
-      "version": "0.1.12-nightly.20261121.5064",
-      "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261121.5064/T3-Code-Nightly-x86_64.AppImage",
-      "hash": "sha256:01ead620409e9fe73680f28b501f5c134067cdf4d052df6f3877aab879cebfac"
+      "version": "0.1.12-nightly.20261122.5071",
+      "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.12-nightly.20261122.5071/T3-Code-Nightly-x86_64.AppImage",
+      "hash": "sha256:ae62ad01ea1c4c4cfe00d5aa8d79069901b6b2e4079a1610193708da21f228d9"
     }
   }
 }
